@@ -1,14 +1,14 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# bart2
+# mvnbart
 
 ## Installation
 
-You can install the development version of bart2 from
+You can install the development version of mvnbart from
 [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("MateusMaiaDS/bart2")
+devtools::install_github("MateusMaiaDS/mvnbart")
 ```
