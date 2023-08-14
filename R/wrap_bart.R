@@ -13,7 +13,8 @@ base_dummyVars <- function(df) {
 # Getting the BART wrapped function
 #' @export
 bart2 <- function(x_train,
-                  y,
+                  c,
+                  q,
                   x_test,
                   n_tree = 2,
                   node_min_size = 5,
@@ -24,7 +25,6 @@ bart2 <- function(x_train,
                   df = 3,
                   sigquant = 0.9,
                   kappa = 2,
-                  tau = 100,
                   scale_bool = TRUE,
                   stump = FALSE,
                   no_rotation_bool = FALSE
@@ -78,9 +78,11 @@ bart2 <- function(x_train,
      }
 
 
-     # Scaling the y
-     min_y <- min(y)
-     max_y <- max(y)
+     # Scaling the 'c' and 'q'
+     min_c <- min(c)
+     max_c <- max(c)
+     min_q <- min(q)
+     max_q <- max(q)
 
      # Getting the min and max for each column
      min_x <- apply(x_train_scale,2,min)
@@ -88,38 +90,45 @@ bart2 <- function(x_train,
 
      # Scaling "y"
      if(scale_bool){
-        y_scale <- normalize_bart(y = y,a = min_y,b = max_y)
-        tau_mu <- (8*n_tree*(kappa^2))
+        c_scale <- normalize_bart(y = c,a = min_c,b = max_c)
+        q_scale <- normalize_bart(y = q, a = min_q, b = max_q)
+
+        tau_mu <- tau_lambda <- (4*n_tree*(kappa^2))
 
      } else {
-        y_scale <- y
+        c_scale <- c
+        q_scale <- q
 
-        tau_mu <- (8*n_tree*(kappa^2))/((max_y-min_y)^2)
+        tau_mu <- tau_lambda <- (4*n_tree*(kappa^2))/((max_y-min_y)^2)
      }
 
      # Getting the naive sigma value
-     nsigma <- naive_sigma(x = x_train_scale,y = y_scale)
+     nsigma_c <- naive_sigma(x = x_train,y = c_scale)
+     nsigma_q <- naive_sigma(x = x_train, y = q_scale)
 
      # Calculating tau hyperparam
      a_tau <- df/2
 
      # Calculating lambda
      qchi <- stats::qchisq(p = 1-sigquant,df = df,lower.tail = 1,ncp = 0)
-     lambda <- (nsigma*nsigma*qchi)/df
-     d_tau <- (lambda*df)/2
+     lambda_c <- (nsigma_c*nsigma_c*qchi)/df
+     rate_tau_c <- (lambda_c*df)/2
+
+     lambda_q <- (nsigma_q*nsigma_q*qchi)/df
+     rate_tau_q <- (lambda_q*df)/2
+
+     # Transforming back the parameters that are going to be used as the Wishart prior
+     df_wish <- 2*a_tau
+     s_0_wish <- 0.5*diag(c(1/rate_tau_c,1/rate_tau_q))
 
 
-     # Call the bart function
-     # tau_init <- tau
-     tau_init <- nsigma^(-2)
-     mu_init <- mean(y_scale)
-
-     # Creating the vector that stores all trees
-     all_tree_post <- vector("list",length = round(n_mcmc-n_burn))
+     # Remin that this is the precision matrix
+     init_P <- rWishart(n = 1,df = df_wish,Sigma = s_0_wish)[,,1]
 
      # Generating the BART obj
      bart_obj <- cppbart(x_train_scale,
-          y_scale,
+          c_scale,
+          q_scale,
           x_test_scale,
           n_tree,
           node_min_size,

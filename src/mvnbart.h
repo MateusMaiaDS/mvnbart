@@ -7,7 +7,8 @@ struct modelParam;
 struct modelParam {
 
         arma::mat x_train;
-        arma::vec y;
+        arma::vec c_train;
+        arma::vec q_train;
         arma::mat x_test;
 
         // BART prior param specification
@@ -17,16 +18,15 @@ struct modelParam {
         double beta;
         double tau_mu;
         double tau_lambda;
-        arma::mat Sigma;
-        double a_tau;
-        double d_tau;
-        double nu;
+        double df_wish;
+        arma::mat P;
         int node_min_size;
 
         // Getting the precision parameters from 2d case
-        double tau_c =;
+        double tau_c;
         double tau_q;
         double rho;
+
         // MCMC spec.
         int n_mcmc;
         int n_burn;
@@ -35,24 +35,22 @@ struct modelParam {
         arma::vec move_proposal;
         arma::vec move_acceptance;
 
-        // Create a boolean to only use stumps
-        bool stump;
 
         // Defining the constructor for the model param
         modelParam(arma::mat x_train_,
-                   arma::vec y_,
+                   arma::vec c_train_,
+                   arma::vec q_train_,
                    arma::mat x_test_,
                    int n_tree_,
                    int node_min_size_,
                    double alpha_,
                    double beta_,
                    double tau_mu_,
-                   double tau_,
-                   double a_tau_,
-                   double d_tau_,
+                   double tau_lambda_,
+                   double df_wish_,
+                   arma::mat s_0_wish_,
                    double n_mcmc_,
-                   double n_burn_,
-                   bool stump_);
+                   double n_burn_);
 
 };
 
@@ -89,17 +87,21 @@ struct Node {
 
      // Leaf parameters
      double mu;
+     double lambda;
 
      // Storing sufficient statistics over the nodes
      double log_likelihood = 0.0;
-     double r_sq_sum = 0.0;
-     double r_sum = 0.0;
-     double s_sq_sum = 0.0;
-     double s_sum = 0.0;
-     double q_til_sum = 0.0;
-     double q_til_sq_sum = 0.0;
-     double c_til_sum = 0.0;
-     double c_til_sq_sum = 0.0;
+     double sr_minus_sl = 0.0; // rs = \sum_{i}r_{i} and ls_ = \sum{i}l_{i}
+     double sr_minus_sl_sq = 0.0;
+     double s_r_minus_l_sq = 0.0; // this is equal to sum_{i}(r_i-l_i)^2;
+
+     double ss_minus_sm = 0.0;     // Same logic from before but r = s
+     double ss_minus_sm_sq = 0.0;  // and l = m
+     double s_s_minus_m_sq = 0.0;
+
+     double gamma;
+     double eta;
+
 
      int n_leaf = 0;
      int n_leaf_test = 0;
@@ -117,8 +119,12 @@ struct Node {
      void grow(Node* tree, modelParam &data, arma::vec &curr_res);
      void prune(Node* tree, modelParam &data, arma::vec&curr_res);
      void change(Node* tree, modelParam &data, arma::vec&curr_res);
+     void nodeUpdateResiduals_c(modelParam& data, arma::vec &curr_res_r, arma::vec& hat_q);
+     void nodeLogLike_c(modelParam &data, arma::vec &curr_res_r, arma::vec& hat_q);
 
-     void nodeLogLike(modelParam &data, arma::vec &curr_res);
+     void nodeUpdateResiduals_q(modelParam& data, arma::vec &curr_res_s, arma::vec& hat_c);
+     void nodeLogLike_q(modelParam &data, arma::vec &curr_res_s, arma::vec& hat_c);
+
      void displayCurrNode();
 
      Node(modelParam &data);
