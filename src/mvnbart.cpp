@@ -1165,13 +1165,29 @@ void getPredictions_q(Node* tree,
 
 
 // Updating the tau parameter
-void updateTau(arma::vec &y_hat,
-               modelParam &data){
+void updateP(arma::vec &c_hat,
+             arma::vec &q_hat,
+             modelParam &data){
 
         // Getting the sum of residuals square
-        double tau_res_sq_sum = dot((y_hat-data.y),(y_hat-data.y));
+        int n_ c_hat.size();
+        arma::mat S(data.P.n_rows,data.P.n_cols,arma::fill::zeros);
+        arma::mat P_aux(data.P.n_rows,data.P.n_cols);
 
-        data.tau = R::rgamma((0.5*data.y.size()+data.a_tau),1/(0.5*tau_res_sq_sum+data.d_tau));
+        for(int i = 0; data.x_train.n_rows; i ++ ){
+                S(0,0) = S(0,0) + (data.c_train(i)-c_hat(i))*(data.c_train(i)-c_hat(i));
+                double cov_aux = (data.c_train(i)-c_hat(i))*(data.q_train(i)-q_hat(i));
+                S(0,1) = S(0,1) + cov_aux;
+                S(1,0) = S(1,0) + cov_aux;
+                S(1,1) = S(1,1) + (data.q_train(i)-q_hat(i))*(data.q_train(i)-q_hat(i));
+        }
+
+        // Replacing the values (it doesnt really matter the values for the inverse)
+        P_aux = arma::inv(arma::inv(wishrnd(n_+data.df_wish,S+data.P)));
+
+        data.tau_c = 1/P_aux(0,0);
+        data.tau_q = 1/P_aux(1,1);
+        data.rho = P_aux(1,0)*sqrt(data.tau_c)*sqrt(data.tau_q);
 
         return;
 }
