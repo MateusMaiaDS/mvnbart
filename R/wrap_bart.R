@@ -125,6 +125,9 @@ bart2 <- function(x_train,
      # Remin that this is the precision matrix
      init_P <- rWishart(n = 1,df = df_wish,Sigma = s_0_wish)[,,1]
 
+     mu_init_c <- mean(c_scale)
+     mu_init_q <- mean(q_scale)
+
      # Generating the BART obj
      bart_obj <- cppbart(x_train_scale,
           c_scale,
@@ -132,57 +135,79 @@ bart2 <- function(x_train,
           x_test_scale,
           n_tree,
           node_min_size,
-          n_mcmc,
-          n_burn,
-          tau_init,
-          mu_init,
-          tau_mu,
           alpha,
           beta,
-          a_tau,d_tau,
-          stump,
-          no_rotation_bool)
+          n_mcmc,
+          n_burn,
+          init_P,
+          mu_init,
+          tau_mu,
+          mu_init_c,
+          mu_init_q,
+          tau_mu,
+          tau_lambda,
+          df_wish,
+          s_0_wish)
 
 
      if(scale_bool){
              # Tidying up the posterior elements
-             y_train_post <- unnormalize_bart(z = bart_obj[[1]],a = min_y,b = max_y)
-             y_test_post <- unnormalize_bart(z = bart_obj[[2]],a = min_y,b = max_y)
-             for(i in 1:round(n_mcmc-n_burn)){
-                     all_tree_post[[i]] <-  unnormalize_bart(z = bart_obj[[4]][,,i],a = min_y,b = max_y)
-             }
-             tau_post <- bart_obj[[3]]/((max_y-min_y)^2)
-             all_tau_post <- bart_obj[[7]]/((max_y-min_y)^2)
+             c_train_post <- unnormalize_bart(z = bart_obj[[1]],a = min_c,b = max_c)
+             c_test_post <- unnormalize_bart(z = bart_obj[[3]],a = min_c,b = max_c)
+             q_train_post <- unnormalize_bart(z = bart_obj[[2]],a = min_q,b = max_q)
+             q_test_post <- unnormalize_bart(z = bart_obj[[4]],a = min_q,b = max_q)
+
+             tau_c_post <- bart_obj[[5]]/((max_c-min_c)^2)
+             tau_q_post <- bart_obj[[6]]/((max_q-min_q)^2)
+             rho_post <- bart_obj[[7]]
+
+             all_tau_c_post <- bart_obj[[10]]/((max_c-min_c)^2)
+             all_tau_q_post <- bart_obj[[11]]/((max_q-min_q)^2)
+             all_rho <- bart_obj[[12]]
+
      } else {
-             y_train_post <- bart_obj[[1]]
-             y_test_post <- bart_obj[[2]]
-             tau_post <- bart_obj[[3]]
-             for(i in 1:round(n_mcmc-n_burn)){
-                     all_tree_post[[i]] <-  bart_obj[[4]][,,i]
-             }
-             all_tau_post <- bart_obj[[7]]
+             c_train_post <- bart_obj[[1]]
+             c_test_post <- bart_obj[[3]]
+             q_train_post <- bart_obj[[2]]
+             q_test_post <- bart_obj[[4]]
+
+             tau_c_post <- bart_obj[[5]]
+             tau_q_post <- bart_obj[[6]]
+             rho_post <- bart_obj[[7]]
+
+             all_tau_c_post <- bart_obj[[10]]
+             all_tau_q_post <- bart_obj[[11]]
+             all_rho <- bart_obj[[12]]
 
 
      }
 
      # Return the list with all objects and parameters
-     return(list(y_hat = y_train_post,
-                 y_hat_test = y_test_post,
-                 tau_post = tau_post,
-                 all_tau_post = all_tau_post,
-                 all_tree_post = all_tree_post,
+     return(list(c_hat = c_train_post,
+                 q_hat = q_train_post,
+                 c_hat_test = c_test_post,
+                 q_hat_test = q_test_post,
+                 tau_c_post = tau_c_post,
+                 tau_q_post = tau_c_post,
+                 rho_post = rho_post,
+                 all_tau_c_post = all_tau_c_post,
+                 all_tau_q_post = all_tau_q_post,
+                 all_rho_post = all_rho,
                  prior = list(n_tree = n_tree,
                               alpha = alpha,
                               beta = beta,
                               tau_mu = tau_mu,
+                              tau_lambda = tau_lambda,
                               a_tau = a_tau,
-                              d_tau = d_tau),
+                              d_tau_c = rate_tau_c,
+                              d_tau_q = rate_tau_q),
                  mcmc = list(n_mcmc = n_mcmc,
                              n_burn = n_burn),
                  data = list(x_train = x_train,
-                             y = y,
+                             c_train = c_train,
+                             q_train = q_train,
                              x_test = x_test,
-                             move_proposal = bart_obj[[5]],
-                             move_acceptance = bart_obj[[6]])))
+                             move_proposal = bart_obj[[8]],
+                             move_acceptance = bart_obj[[9]])))
 }
 
