@@ -19,7 +19,7 @@ struct modelParam {
         double tau_mu;
         double tau_lambda;
         double df_wish;
-        arma::mat P;
+        arma::mat s_0_wish;
         int node_min_size;
 
         // Getting the precision parameters from 2d case

@@ -1,18 +1,18 @@
 
-# Sampling from a WishHart
-myWishart <- function(df , Sigma){
-
-        p <- ncol(Sigma)
-        a <- chol(Sigma)
-        sample_mvn <- mvnfast::rmvn(n = df,mu = rep(0,p),sigma = diag(nrow = p))
-        mat <- matrix(0,nrow = p, ncol = p)
-        for(i in 1:df){
-                mat <- mat + crossprod(sample_mvn[i,, drop = FALSE])
-        }
-
-        wishSample <- a%*%crossprod(mat,a)
-        return(wishSample)
-}
+# # Sampling from a WishHart
+# myWishart <- function(df , Sigma){
+#
+#         p <- ncol(Sigma)
+#         a <- chol(Sigma)
+#         sample_mvn <- mvnfast::rmvn(n = df,mu = rep(0,p),sigma = diag(nrow = p))
+#         mat <- matrix(0,nrow = p, ncol = p)
+#         for(i in 1:df){
+#                 mat <- mat + crossprod(sample_mvn[i,, drop = FALSE])
+#         }
+#
+#         wishSample <- a%*%crossprod(mat,a)
+#         return(wishSample)
+# }
 
 # Normalize BART function (Same way ONLY THE COVARIATE NOW)
 normalize_covariates_bart <- function(y, a = NULL, b = NULL) {

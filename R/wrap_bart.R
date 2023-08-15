@@ -1,5 +1,5 @@
 ## Bart
-#' @useDynLib bart2
+#' @useDynLib mvnbart
 #' @importFrom Rcpp sourceCpp
 #'
 # A fucction to retrive the number which are the factor columns
@@ -12,9 +12,9 @@ base_dummyVars <- function(df) {
 
 # Getting the BART wrapped function
 #' @export
-bart2 <- function(x_train,
-                  c,
-                  q,
+mvnbart <- function(x_train,
+                  c_train,
+                  q_train,
                   x_test,
                   n_tree = 2,
                   node_min_size = 5,
@@ -49,7 +49,7 @@ bart2 <- function(x_train,
                      if(!all(levels(x_train[[dummy_x$facVars[i]]])==levels(x_test[[dummy_x$facVars[i]]]))){
                         levels(x_test[[dummy_x$facVars[[i]]]]) <- levels(x_train[[dummy_x$facVars[[i]]]])
                      }
-                     df_aux <- data.frame( x = x_train[,dummy_x$facVars[i]],y)
+                     df_aux <- data.frame( x = x_train[,dummy_x$facVars[i]],y = c_train)
                      formula_aux <- stats::aggregate(y~x,df_aux,mean)
                      formula_aux$y <- rank(formula_aux$y)
                      x_train[[dummy_x$facVars[i]]] <- as.numeric(factor(x_train[[dummy_x$facVars[[i]]]], labels = c(formula_aux$y)))-1
@@ -79,10 +79,10 @@ bart2 <- function(x_train,
 
 
      # Scaling the 'c' and 'q'
-     min_c <- min(c)
-     max_c <- max(c)
-     min_q <- min(q)
-     max_q <- max(q)
+     min_c <- min(c_train)
+     max_c <- max(c_train)
+     min_q <- min(q_train)
+     max_q <- max(q_train)
 
      # Getting the min and max for each column
      min_x <- apply(x_train_scale,2,min)
@@ -90,8 +90,8 @@ bart2 <- function(x_train,
 
      # Scaling "y"
      if(scale_bool){
-        c_scale <- normalize_bart(y = c,a = min_c,b = max_c)
-        q_scale <- normalize_bart(y = q, a = min_q, b = max_q)
+        c_scale <- normalize_bart(y = c_train,a = min_c,b = max_c)
+        q_scale <- normalize_bart(y = q_train, a = min_q, b = max_q)
 
         tau_mu <- tau_lambda <- (4*n_tree*(kappa^2))
 
@@ -99,7 +99,8 @@ bart2 <- function(x_train,
         c_scale <- c
         q_scale <- q
 
-        tau_mu <- tau_lambda <- (4*n_tree*(kappa^2))/((max_y-min_y)^2)
+        tau_mu <- (4*n_tree*(kappa^2))/((max_c-min_c)^2)
+        tau_lambda <- (4*n_tree*(kappa^2))/((max_q-min_q)^2)
      }
 
      # Getting the naive sigma value
@@ -123,7 +124,7 @@ bart2 <- function(x_train,
 
 
      # Remin that this is the precision matrix
-     init_P <- rWishart(n = 1,df = df_wish,Sigma = s_0_wish)[,,1]
+     init_P <- solve(stats::rWishart(n = 1,df = df_wish,Sigma = s_0_wish)[,,1])
 
      mu_init_c <- mean(c_scale)
      mu_init_q <- mean(q_scale)
@@ -140,8 +141,6 @@ bart2 <- function(x_train,
           n_mcmc,
           n_burn,
           init_P,
-          mu_init,
-          tau_mu,
           mu_init_c,
           mu_init_q,
           tau_mu,

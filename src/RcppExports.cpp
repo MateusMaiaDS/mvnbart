@@ -60,28 +60,29 @@ BEGIN_RCPP
 END_RCPP
 }
 // cppbart
-Rcpp::List cppbart(arma::mat x_train, arma::vec y_train, arma::mat x_test, int n_tree, int node_min_size, int n_mcmc, int n_burn, double tau, double mu, double tau_mu, double alpha, double beta, double a_tau, double d_tau, bool stump, bool no_rotation_bool);
-RcppExport SEXP _mvnbart_cppbart(SEXP x_trainSEXP, SEXP y_trainSEXP, SEXP x_testSEXP, SEXP n_treeSEXP, SEXP node_min_sizeSEXP, SEXP n_mcmcSEXP, SEXP n_burnSEXP, SEXP tauSEXP, SEXP muSEXP, SEXP tau_muSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP a_tauSEXP, SEXP d_tauSEXP, SEXP stumpSEXP, SEXP no_rotation_boolSEXP) {
+Rcpp::List cppbart(arma::mat x_train, arma::vec c_train, arma::vec q_train, arma::mat x_test, int n_tree, int node_min_size, double alpha, double beta, int n_mcmc, int n_burn, arma::mat P, double mu_c, double mu_q, double tau_mu, double tau_lambda, double df_wish, arma::mat s_0_wish);
+RcppExport SEXP _mvnbart_cppbart(SEXP x_trainSEXP, SEXP c_trainSEXP, SEXP q_trainSEXP, SEXP x_testSEXP, SEXP n_treeSEXP, SEXP node_min_sizeSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP n_mcmcSEXP, SEXP n_burnSEXP, SEXP PSEXP, SEXP mu_cSEXP, SEXP mu_qSEXP, SEXP tau_muSEXP, SEXP tau_lambdaSEXP, SEXP df_wishSEXP, SEXP s_0_wishSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type x_train(x_trainSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type y_train(y_trainSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type c_train(c_trainSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type q_train(q_trainSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type x_test(x_testSEXP);
     Rcpp::traits::input_parameter< int >::type n_tree(n_treeSEXP);
     Rcpp::traits::input_parameter< int >::type node_min_size(node_min_sizeSEXP);
-    Rcpp::traits::input_parameter< int >::type n_mcmc(n_mcmcSEXP);
-    Rcpp::traits::input_parameter< int >::type n_burn(n_burnSEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
     Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< double >::type a_tau(a_tauSEXP);
-    Rcpp::traits::input_parameter< double >::type d_tau(d_tauSEXP);
-    Rcpp::traits::input_parameter< bool >::type stump(stumpSEXP);
-    Rcpp::traits::input_parameter< bool >::type no_rotation_bool(no_rotation_boolSEXP);
-    rcpp_result_gen = Rcpp::wrap(cppbart(x_train, y_train, x_test, n_tree, node_min_size, n_mcmc, n_burn, tau, mu, tau_mu, alpha, beta, a_tau, d_tau, stump, no_rotation_bool));
+    Rcpp::traits::input_parameter< int >::type n_mcmc(n_mcmcSEXP);
+    Rcpp::traits::input_parameter< int >::type n_burn(n_burnSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type P(PSEXP);
+    Rcpp::traits::input_parameter< double >::type mu_c(mu_cSEXP);
+    Rcpp::traits::input_parameter< double >::type mu_q(mu_qSEXP);
+    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
+    Rcpp::traits::input_parameter< double >::type tau_lambda(tau_lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type df_wish(df_wishSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type s_0_wish(s_0_wishSEXP);
+    rcpp_result_gen = Rcpp::wrap(cppbart(x_train, c_train, q_train, x_test, n_tree, node_min_size, alpha, beta, n_mcmc, n_burn, P, mu_c, mu_q, tau_mu, tau_lambda, df_wish, s_0_wish));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -201,13 +202,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cppWishart
+arma::mat cppWishart(double df, arma::mat Sigma);
+RcppExport SEXP _mvnbart_cppWishart(SEXP dfSEXP, SEXP SigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Sigma(SigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(cppWishart(df, Sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_mvnbart_gamma_pdf", (DL_FUNC) &_mvnbart_gamma_pdf, 3},
     {"_mvnbart_r_gamma_pdf", (DL_FUNC) &_mvnbart_r_gamma_pdf, 3},
     {"_mvnbart_print_mat_subset", (DL_FUNC) &_mvnbart_print_mat_subset, 1},
     {"_mvnbart_log_dmvn", (DL_FUNC) &_mvnbart_log_dmvn, 2},
-    {"_mvnbart_cppbart", (DL_FUNC) &_mvnbart_cppbart, 16},
+    {"_mvnbart_cppbart", (DL_FUNC) &_mvnbart_cppbart, 17},
     {"_mvnbart_mat_init", (DL_FUNC) &_mvnbart_mat_init, 1},
     {"_mvnbart_vec_init", (DL_FUNC) &_mvnbart_vec_init, 1},
     {"_mvnbart_std_inv", (DL_FUNC) &_mvnbart_std_inv, 2},
@@ -218,6 +231,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mvnbart_rMVN2", (DL_FUNC) &_mvnbart_rMVN2, 2},
     {"_mvnbart_rMVNslow", (DL_FUNC) &_mvnbart_rMVNslow, 2},
     {"_mvnbart_matrix_mat", (DL_FUNC) &_mvnbart_matrix_mat, 1},
+    {"_mvnbart_cppWishart", (DL_FUNC) &_mvnbart_cppWishart, 2},
     {NULL, NULL, 0}
 };
 

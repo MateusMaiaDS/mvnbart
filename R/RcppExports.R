@@ -17,8 +17,8 @@ log_dmvn <- function(x, Sigma) {
     .Call('_mvnbart_log_dmvn', PACKAGE = 'mvnbart', x, Sigma)
 }
 
-cppbart <- function(x_train, y_train, x_test, n_tree, node_min_size, n_mcmc, n_burn, tau, mu, tau_mu, alpha, beta, a_tau, d_tau, stump, no_rotation_bool) {
-    .Call('_mvnbart_cppbart', PACKAGE = 'mvnbart', x_train, y_train, x_test, n_tree, node_min_size, n_mcmc, n_burn, tau, mu, tau_mu, alpha, beta, a_tau, d_tau, stump, no_rotation_bool)
+cppbart <- function(x_train, c_train, q_train, x_test, n_tree, node_min_size, alpha, beta, n_mcmc, n_burn, P, mu_c, mu_q, tau_mu, tau_lambda, df_wish, s_0_wish) {
+    .Call('_mvnbart_cppbart', PACKAGE = 'mvnbart', x_train, c_train, q_train, x_test, n_tree, node_min_size, alpha, beta, n_mcmc, n_burn, P, mu_c, mu_q, tau_mu, tau_lambda, df_wish, s_0_wish)
 }
 
 mat_init <- function(n) {
@@ -59,5 +59,9 @@ rMVNslow <- function(b, Q) {
 
 matrix_mat <- function(array) {
     .Call('_mvnbart_matrix_mat', PACKAGE = 'mvnbart', array)
+}
+
+cppWishart <- function(df, Sigma) {
+    .Call('_mvnbart_cppWishart', PACKAGE = 'mvnbart', df, Sigma)
 }
 

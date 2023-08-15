@@ -140,7 +140,7 @@ modelParam::modelParam(arma::mat x_train_,
         tau_mu = tau_mu_;
         tau_lambda = tau_lambda_;
         df_wish = df_wish_;
-        P = s_0_wish_; // Precision matrix prior;
+        s_0_wish = s_0_wish_; // Precision matrix prior;
         n_mcmc = n_mcmc_;
         n_burn = n_burn_;
 
@@ -415,9 +415,6 @@ void grow_c(Node* tree, modelParam &data, arma::vec &curr_res_r, arma::vec hat_q
         int old_var_split = g_node->var_split;
         double old_var_split_rule = g_node->var_split_rule;
 
-        // Calculate current tree log likelihood
-        double tree_log_like = 0;
-
         // Calculating the whole likelihood fo the tree
         for(int i = 0; i < t_nodes.size(); i++){
                 // cout << "Error gpNodeLogLike" << endl;
@@ -500,11 +497,19 @@ void grow_c(Node* tree, modelParam &data, arma::vec &curr_res_r, arma::vec hat_q
 
 
         // Updating the loglikelihood for those terminal nodes
+        // cout << "Error here" << endl;
+        g_node->nodeLogLike_c(data,curr_res_r,hat_q);
+        // cout << "MUST be here" << endl;
+
         // cout << "Calculating likelihood of the new node on left" << endl;
+        g_node->left->nodeUpdateResiduals_c(data,curr_res_r,hat_q);
         g_node->left->nodeLogLike_c(data, curr_res_r,hat_q);
         // cout << "Calculating likelihood of the new node on right" << endl;
+        g_node->right->nodeUpdateResiduals_c(data,curr_res_r,hat_q);
         g_node->right->nodeLogLike_c(data, curr_res_r,hat_q);
-        // cout << "NodeLogLike ok again" << endl;
+
+
+        // cout << "NodeLogLike ok again: " << g_node->left->sr_minus_sl << endl;
 
 
         // Calculating the prior term for the grow
@@ -560,8 +565,7 @@ void grow_q(Node* tree, modelParam &data, arma::vec &curr_res_s, arma::vec & hat
         int old_var_split = g_node->var_split;
         double old_var_split_rule = g_node->var_split_rule;
 
-        // Calculate current tree log likelihood
-        double tree_log_like = 0;
+
 
         // Calculating the whole likelihood fo the tree
         for(int i = 0; i < t_nodes.size(); i++){
@@ -646,9 +650,12 @@ void grow_q(Node* tree, modelParam &data, arma::vec &curr_res_s, arma::vec & hat
 
 
         // Updating the loglikelihood for those terminal nodes
+        g_node->nodeLogLike_q(data,curr_res_s,hat_c);
         // cout << "Calculating likelihood of the new node on left" << endl;
+        g_node->left->nodeUpdateResiduals_q(data,curr_res_s,hat_c);
         g_node->left->nodeLogLike_q(data, curr_res_s,hat_c);
         // cout << "Calculating likelihood of the new node on right" << endl;
+        g_node->right->nodeUpdateResiduals_q(data,curr_res_s,hat_c);
         g_node->right->nodeLogLike_q(data, curr_res_s,hat_c);
         // cout << "NodeLogLike ok again" << endl;
 
@@ -768,9 +775,6 @@ void prune_q(Node* tree, modelParam&data, arma::vec &curr_res_s, arma::vec & hat
         Node* p_node = sample_node(nog_nodes);
 
 
-        // Calculate current tree log likelihood
-        double tree_log_like = 0;
-
         // Calculating the whole likelihood fo the tree
         for(int i = 0; i < t_nodes.size(); i++){
                 t_nodes[i]->nodeUpdateResiduals_q(data, curr_res_s,hat_c);
@@ -825,8 +829,6 @@ void change_c(Node* tree, modelParam &data, arma::vec &curr_res_r,arma::vec &hat
         // Selecting one node to be sampled
         Node* c_node = sample_node(nog_nodes);
 
-        // Calculate current tree log likelihood
-        double tree_log_like = 0;
 
         if(c_node->isRoot){
                 // cout << " THAT NEVER HAPPENS" << endl;
@@ -858,7 +860,8 @@ void change_c(Node* tree, modelParam &data, arma::vec &curr_res_r,arma::vec &hat
         double old_left_ss_minus_sm = c_node->left->ss_minus_sm;
         double old_left_ss_minus_sm_sq = c_node->left->ss_minus_sm_sq;
         double old_left_s_s_minus_m_sq = c_node->left->s_s_minus_m_sq;
-
+        double old_left_gamma = c_node->left->gamma;
+        double old_left_eta = c_node->left->eta;
 
         arma::vec old_left_train_index = c_node->left->train_index;
         c_node->left->train_index.fill(-1); // Returning to the original
@@ -873,6 +876,8 @@ void change_c(Node* tree, modelParam &data, arma::vec &curr_res_r,arma::vec &hat
         double old_right_ss_minus_sm = c_node->right->ss_minus_sm;
         double old_right_ss_minus_sm_sq = c_node->right->ss_minus_sm_sq;
         double old_right_s_s_minus_m_sq = c_node->right->s_s_minus_m_sq;
+        double old_right_gamma = c_node->right->gamma;
+        double old_right_eta = c_node->right->eta;
 
         arma::vec old_right_train_index = c_node->right->train_index;
         c_node->right->train_index.fill(-1);
@@ -975,6 +980,9 @@ void change_c(Node* tree, modelParam &data, arma::vec &curr_res_r,arma::vec &hat
                 c_node->left->ss_minus_sm = old_left_ss_minus_sm;
                 c_node->left->ss_minus_sm_sq = old_left_ss_minus_sm_sq;
                 c_node->left->s_s_minus_m_sq = old_left_s_s_minus_m_sq;
+                c_node->left->gamma = old_left_gamma;
+                c_node->left->eta = old_left_eta;
+
 
 
                 c_node->left->n_leaf = old_left_n_leaf;
@@ -990,6 +998,8 @@ void change_c(Node* tree, modelParam &data, arma::vec &curr_res_r,arma::vec &hat
                 c_node->right->ss_minus_sm = old_right_ss_minus_sm;
                 c_node->right->ss_minus_sm_sq = old_right_ss_minus_sm_sq;
                 c_node->right->s_s_minus_m_sq = old_right_s_s_minus_m_sq;
+                c_node->right->gamma = old_right_gamma;
+                c_node->right->eta = old_right_eta;
 
 
                 c_node->right->n_leaf = old_right_n_leaf;
@@ -1030,7 +1040,8 @@ void change_c(Node* tree, modelParam &data, arma::vec &curr_res_r,arma::vec &hat
                 c_node->left->ss_minus_sm = old_left_ss_minus_sm;
                 c_node->left->ss_minus_sm_sq = old_left_ss_minus_sm_sq;
                 c_node->left->s_s_minus_m_sq = old_left_s_s_minus_m_sq;
-
+                c_node->left->gamma = old_left_gamma;
+                c_node->left->eta = old_left_eta;
 
                 c_node->left->n_leaf = old_left_n_leaf;
                 c_node->left->n_leaf_test = old_left_n_leaf_test;
@@ -1045,7 +1056,8 @@ void change_c(Node* tree, modelParam &data, arma::vec &curr_res_r,arma::vec &hat
                 c_node->right->ss_minus_sm = old_right_ss_minus_sm;
                 c_node->right->ss_minus_sm_sq = old_right_ss_minus_sm_sq;
                 c_node->right->s_s_minus_m_sq = old_right_s_s_minus_m_sq;
-
+                c_node->right->gamma = old_right_gamma;
+                c_node->right->eta = old_right_eta;
 
                 c_node->right->n_leaf = old_right_n_leaf;
                 c_node->right->n_leaf_test = old_right_n_leaf_test;
@@ -1069,9 +1081,6 @@ void change_q(Node* tree, modelParam &data, arma::vec &curr_res_s,arma::vec &hat
 
         // Selecting one node to be sampled
         Node* c_node = sample_node(nog_nodes);
-
-        // Calculate current tree log likelihood
-        double tree_log_like = 0;
 
         if(c_node->isRoot){
                 // cout << " THAT NEVER HAPPENS" << endl;
@@ -1326,6 +1335,7 @@ void Node::nodeUpdateResiduals_c(modelParam& data,
                 sr_minus_sl = 0.0;
                 sr_minus_sl_sq = 0.0;
                 s_r_minus_l_sq = 0.0;
+                Rcpp::stop("Error");
                 log_likelihood = -2000000; // Absurd value avoid this case
                 // cout << "OOOPS something happened" << endl;
                 return;
@@ -1338,6 +1348,8 @@ void Node::nodeUpdateResiduals_c(modelParam& data,
                 sr_minus_sl = 0.0;
                 sr_minus_sl_sq = 0.0;
                 s_r_minus_l_sq = 0.0;
+                Rcpp::stop("Error");
+
                 log_likelihood = -2000000; // Absurd value avoid this case
                 // cout << "OOOPS something happened" << endl;
                 return;
@@ -1347,13 +1359,20 @@ void Node::nodeUpdateResiduals_c(modelParam& data,
         sr_minus_sl = 0.0;
         sr_minus_sl_sq = 0.0;
         s_r_minus_l_sq = 0.0;
-        double sum_r = 0.0;
-        double sum_l = 0.0;
+
 
         // Creating the vector that corresponds to the l vector
+        // cout << "Q(train): " << data.q_train(0) << endl;
+        // cout << "Haaat --- Q(train): " << hat_q(0) << endl;
+        // cout << "Pho: " << data.rho << endl;
+
         arma::vec l = (sqrt(data.tau_q)/sqrt(data.tau_c))*data.rho*(data.q_train-hat_q);
-        arma::vec leaf_r(n_leaf);
-        arma::vec leaf_l(n_leaf);
+        arma::vec leaf_r(n_leaf,arma::fill::zeros);
+        arma::vec leaf_l(n_leaf,arma::fill::zeros);
+
+        if(n_leaf==0){
+                Rcpp::stop("Error empty bide");
+        }
 
         // Train elements
         for(int i = 0; i < n_leaf;i++){
@@ -1362,8 +1381,18 @@ void Node::nodeUpdateResiduals_c(modelParam& data,
                 s_r_minus_l_sq = s_r_minus_l_sq + (leaf_r(i)-leaf_l(i))*(leaf_r(i)-leaf_l(i));
         }
 
-        sr_minus_sl = arma::accu(leaf_r)-arma::accu(leaf_l);
+        // cout << "Sum of l_i" << arma::sum(leaf_l) << endl;
+        // cout << "Leaf size: " << n_leaf << endl;
+        // cout << train_index << endl;
+        // cout << "Sum of residuals_i " << arma::sum(leaf_r)<< endl;
+
+
+        sr_minus_sl = arma::sum(leaf_r)-arma::sum(leaf_l);
         sr_minus_sl_sq = sr_minus_sl*sr_minus_sl;
+
+
+        // Updating the gamma
+        gamma = n_leaf + (data.tau_mu*(1-data.rho*data.rho))/(data.tau_c);
 
         return;
 
@@ -1398,8 +1427,6 @@ void Node::nodeLogLike_c(modelParam& data,
                 // cout << "OOOPS something happened" << endl;
                 return;
         }
-        // Updating the gamma
-        gamma = n_leaf + (data.tau_mu*(1-data.rho*data.rho))/(data.tau_c);
 
         // Getting the log-likelihood;
         log_likelihood = -0.5*n_leaf*log((1-data.rho*data.rho)/data.tau_c) + 0.5*log((1-data.rho*data.rho)/(data.tau_c*gamma)) -0.5*(data.tau_c/(1-data.rho*data.rho))*s_r_minus_l_sq - 0.5*((data.tau_c*gamma)/(1-data.rho*data.rho))*sr_minus_sl_sq;
@@ -1414,10 +1441,13 @@ void updateMu(Node* tree, modelParam &data){
 
         // Getting the terminal nodes
         std::vector<Node*> t_nodes = leaves(tree);
-
         // Iterating over the terminal nodes and updating the beta values
         for(int i = 0; i < t_nodes.size();i++){
+                // cout << "Analzying sum_r - sum_l: " <<  t_nodes[i]->sr_minus_sl << endl;
+                // cout << "Gamma: " << t_nodes[i]->gamma << endl;
+                // cout << "Getting the mean: " << (t_nodes[i]->sr_minus_sl) << endl;
                 t_nodes[i]->mu = R::rnorm((t_nodes[i]->sr_minus_sl)/(t_nodes[i]->gamma),sqrt((1-data.rho*data.rho)/(data.tau_c*t_nodes[i]->gamma))) ;
+                // cout << "SAMPLED MU: " << t_nodes[i]->mu << endl;
         }
 }
 
@@ -1465,8 +1495,6 @@ void Node::nodeUpdateResiduals_q(modelParam& data,
         ss_minus_sm = 0.0;
         ss_minus_sm_sq = 0.0;
         s_s_minus_m_sq = 0.0;
-        double sum_s = 0.0;
-        double sum_m = 0.0;
 
         // Creating the vector that corresponds to the l vector
         arma::vec m = (sqrt(data.tau_c)/sqrt(data.tau_q))*data.rho*(data.c_train-hat_c);
@@ -1482,6 +1510,9 @@ void Node::nodeUpdateResiduals_q(modelParam& data,
 
         ss_minus_sm = arma::accu(leaf_s)-arma::accu(leaf_m);
         ss_minus_sm_sq = ss_minus_sm*ss_minus_sm;
+
+        // Updating the eta
+        eta = n_leaf + (data.tau_lambda*(1-data.rho*data.rho))/(data.tau_q);
 
         return;
 
@@ -1516,8 +1547,6 @@ void Node::nodeLogLike_q(modelParam& data,
                 // cout << "OOOPS something happened" << endl;
                 return;
         }
-        // Updating the gamma
-        eta = n_leaf + (data.tau_lambda*(1-data.rho*data.rho))/(data.tau_q);
 
         // Getting the log-likelihood;
         log_likelihood = -0.5*n_leaf*log((1-data.rho*data.rho)/data.tau_q) + 0.5*log((1-data.rho*data.rho)/(data.tau_q*eta)) -0.5*(data.tau_q/(1-data.rho*data.rho))*s_s_minus_m_sq - 0.5*((data.tau_q*eta)/(1-data.rho*data.rho))*ss_minus_sm_sq;
@@ -1527,7 +1556,7 @@ void Node::nodeLogLike_q(modelParam& data,
 }
 
 
-// UPDATING MU ( NOT NECESSARY)
+// UPDATING LAMBDA
 void updateLambda(Node* tree, modelParam &data){
 
         // Getting the terminal nodes
@@ -1646,10 +1675,10 @@ void updateP(arma::vec &c_hat,
 
         // Getting the sum of residuals square
         int n_ = c_hat.size();
-        arma::mat S(data.P.n_rows,data.P.n_cols,arma::fill::zeros);
-        arma::mat P_aux(data.P.n_rows,data.P.n_cols);
+        arma::mat S(data.s_0_wish.n_rows,data.s_0_wish.n_cols,arma::fill::zeros);
+        arma::mat P_aux(data.s_0_wish.n_rows,data.s_0_wish.n_cols);
 
-        for(int i = 0; data.x_train.n_rows; i ++ ){
+        for(int i = 0; i < data.x_train.n_rows; i ++ ){
                 S(0,0) = S(0,0) + (data.c_train(i)-c_hat(i))*(data.c_train(i)-c_hat(i));
                 double cov_aux = (data.c_train(i)-c_hat(i))*(data.q_train(i)-q_hat(i));
                 S(0,1) = S(0,1) + cov_aux;
@@ -1657,8 +1686,9 @@ void updateP(arma::vec &c_hat,
                 S(1,1) = S(1,1) + (data.q_train(i)-q_hat(i))*(data.q_train(i)-q_hat(i));
         }
 
+        // cout << c_hat(0) << endl;
         // Replacing the values (it doesnt really matter the values for the inverse)
-        P_aux = arma::inv(arma::inv(arma::wishrnd(S+data.P,n_+data.df_wish)));
+        P_aux = arma::inv(arma::wishrnd(S+data.s_0_wish,n_+data.df_wish));
 
         data.tau_c = 1/P_aux(0,0);
         data.tau_q = 1/P_aux(1,1);
@@ -1694,23 +1724,30 @@ Rcpp::List cppbart(arma::mat x_train,
 
         // cout << " Error on model.param" << endl;
         // Creating the structu object
-        modelParam data(x_train = x_train,
-                        c_train = c_train,
-                        q_train =q_train,
-                        x_test = x_test,
-                        n_tree = n_tree,
-                        node_min_size = node_min_size,
-                        alpha = alpha,
-                        beta = beta,
-                        tau_mu = tau_mu,
-                        tau_lambda = tau_lambda,
-                        df_wish = df_wish,
-                        s_0_wish = s_0_wish,
-                        n_mcmc = n_mcmc,
-                        n_burn = n_burn);
+        modelParam data(x_train,
+                        c_train,
+                        q_train,
+                        x_test,
+                        n_tree,
+                        node_min_size,
+                        alpha,
+                        beta,
+                        tau_mu,
+                        tau_lambda,
+                        df_wish,
+                        s_0_wish,
+                        n_mcmc,
+                        n_burn);
 
         // Getting the n_post
         int n_post = n_mcmc - n_burn;
+
+
+        // Replacing initial values for some of the parameters
+        data.tau_c = (1/P(0,0));
+        data.tau_q = (1/P(1,1));
+        data.rho = P(1,0)*sqrt(data.tau_c)*sqrt(data.tau_q);
+
 
         // Defining those elements
         arma::mat c_train_hat_post = arma::zeros<arma::mat>(data.x_train.n_rows,n_post);
@@ -1729,19 +1766,20 @@ Rcpp::List cppbart(arma::mat x_train,
         arma::vec all_rho(n_mcmc,arma::fill::zeros);
 
         // Defining other variables
-        arma::vec partial_pred_c = arma::vec(data.x_train.n_rows,n_post,arma::fill::zeros);
-        arma::vec partial_pred_q = arma::vec(data.x_train.n_rows,n_post,arma::fill::zeros);
+        // arma::vec partial_pred_c(data.x_train.n_rows,arma::fill::zeros);
+        // arma::vec partial_pred_q(data.x_train.n_rows,arma::fill::zeros);
         arma::vec partial_residuals_c = arma::zeros<arma::vec>(data.x_train.n_rows);
         arma::vec partial_residuals_q = arma::zeros<arma::vec>(data.x_train.n_rows);
 
         arma::mat tree_fits_store_c(data.x_train.n_rows,data.n_tree,arma::fill::zeros);
         arma::mat tree_fits_store_q(data.x_train.n_rows,data.n_tree,arma::fill::zeros);
 
-        for(int i = 0 ; i < data.n_tree ; i ++ ){
-                tree_fits_store_c.col(i) = partial_pred_c;
-                tree_fits_store_q.col(i) = partial_pred_q;
-
-        }
+        // Updating with small values
+        // for(int i = 0 ; i < data.n_tree ; i ++ ){
+        //         tree_fits_store_c.col(i) = partial_pred_c;
+        //         tree_fits_store_q.col(i) = partial_pred_q;
+        //
+        // }
         arma::mat tree_fits_store_test_q(data.x_test.n_rows,data.n_tree,arma::fill::zeros);
         arma::mat tree_fits_store_test_c(data.x_test.n_rows,data.n_tree,arma::fill::zeros);
 
@@ -1790,10 +1828,10 @@ Rcpp::List cppbart(arma::mat x_train,
                 for(int t = 0; t<data.n_tree;t++){
 
                         // Creating the auxliar prediction vector
-                        arma::vec c_hat(data.c_train.n_rows,arma::fill::zeros);
+                        arma::vec c_hat(data.x_train.n_rows,arma::fill::zeros);
                         arma::vec prediction_test_c(data.x_test.n_rows,arma::fill::zeros);
 
-                        // cout << "Residuals error "<< endl;
+                        cout << "Residuals error "<< endl;
                         // Updating the partial residuals
                         if(data.n_tree>1){
                                 partial_residuals_c = data.c_train-sum_exclude_col(tree_fits_store_c,t);
@@ -1801,8 +1839,11 @@ Rcpp::List cppbart(arma::mat x_train,
                                 partial_residuals_c = data.c_train;
                         }
 
+
+                        cout << "Another error" << endl;
                         // Iterating over all trees
                         verb = arma::randu(arma::distr_param(0.0,1.0));
+                        cout << "Another error 2.0" << endl;
 
                         // Always growing
                         if(all_forest_c.trees[t]->isLeaf & all_forest_c.trees[t]->isRoot){
@@ -1812,24 +1853,26 @@ Rcpp::List cppbart(arma::mat x_train,
                         // Selecting the verb
                         if(verb < 0.3){
                                 data.move_proposal(0)++;
-                                // cout << " Grow error" << endl;
+                                cout << " Grow error" << endl;
                                 grow_c(all_forest_c.trees[t],data,partial_residuals_c,prediction_train_sum_q);
 
                         } else if(verb>=0.3 & verb <0.6) {
-                                data.move_proposal(2)++;
+                                data.move_proposal(1)++;
+                                cout << " Prune error" << endl;
                                 prune_c(all_forest_c.trees[t], data, partial_residuals_c,prediction_train_sum_q);
                         } else {
-                                data.move_proposal(3)++;
+                                data.move_proposal(2)++;
 
-                                // cout << " Change error" << endl;
+                                cout << " Change error" << endl;
                                 change_c(all_forest_c.trees[t], data, partial_residuals_c,prediction_train_sum_q);
                                 // std::cout << "Error after change" << endl;
                         }
 
+                        std::cout << "Error on mu" << endl;
                         updateMu(all_forest_c.trees[t],data);
 
                         // Getting predictions
-                        // cout << " Error on Get Predictions" << endl;
+                        cout << " Error on Get Predictions" << endl;
                         getPredictions_c(all_forest_c.trees[t],data,c_hat,prediction_test_c);
 
                         // Updating the tree
@@ -1837,7 +1880,7 @@ Rcpp::List cppbart(arma::mat x_train,
                         tree_fits_store_c.col(t) = c_hat;
                         // cout << "Residuals error 3.0"<< endl;
                         tree_fits_store_test_c.col(t) = prediction_test_c;
-                        // cout << "Residuals error 4.0"<< endl;
+                        // std::cout << "Residuals error 4.0"<< endl;
 
                 }
 
@@ -1853,15 +1896,17 @@ Rcpp::List cppbart(arma::mat x_train,
                 for(int t = 0; t<data.n_tree;t++){
 
                         // Creating the auxliar prediction vector
-                        arma::vec q_hat(data.q_train.n_rows,arma::fill::zeros);
+                        arma::vec q_hat(data.x_train.n_rows,arma::fill::zeros);
                         arma::vec prediction_test_q(data.x_test.n_rows,arma::fill::zeros);
 
-                        // cout << "Residuals error "<< endl;
+                        // cout << "Residuals error Q "<< endl;
+                        // cout << " hat{Q}: "<< q_hat(0) << endl;
+
                         // Updating the partial residuals
                         if(data.n_tree>1){
                                 partial_residuals_q = data.q_train-sum_exclude_col(tree_fits_store_q,t);
                         } else {
-                                partial_residuals_q = data.c_train;
+                                partial_residuals_q = data.q_train;
                         }
 
                         // Iterating over all trees
@@ -1879,43 +1924,49 @@ Rcpp::List cppbart(arma::mat x_train,
                                 grow_q(all_forest_q.trees[t],data,partial_residuals_q,prediction_train_sum_c);
 
                         } else if(verb>=0.3 & verb <0.6) {
-                                data.move_proposal(2)++;
+                                data.move_proposal(1)++;
                                 prune_q(all_forest_q.trees[t], data, partial_residuals_q,prediction_train_sum_c);
                         } else {
-                                data.move_proposal(3)++;
+                                data.move_proposal(2)++;
 
                                 // cout << " Change error" << endl;
                                 change_q(all_forest_q.trees[t], data, partial_residuals_q,prediction_train_sum_c);
                                 // std::cout << "Error after change" << endl;
                         }
 
-                        updateLambda(all_forest_c.trees[t],data);
+                        updateLambda(all_forest_q.trees[t],data);
 
                         // Getting predictions
-                        // cout << " Error on Get Predictions" << endl;
-                        getPredictions_q(all_forest_c.trees[t],data,q_hat,prediction_test_q);
+                        cout << " Error on Get Predictions Q" << endl;
+                        getPredictions_q(all_forest_q.trees[t],data,q_hat,prediction_test_q);
+                        cout << " NEW hat{Q}: "<< q_hat(0) << endl;
 
                         // Updating the tree
-                        // cout << "Residuals error 2.0"<< endl;
+                        cout << "Residuals error 2.0"<< endl;
                         tree_fits_store_q.col(t) = q_hat;
-                        // cout << "Residuals error 3.0"<< endl;
+                        cout << "Residuals error 3.0"<< endl;
                         tree_fits_store_test_q.col(t) = prediction_test_q;
-                        // cout << "Residuals error 4.0"<< endl;
+                        cout << "Residuals error 4.0"<< endl;
                 }
 
 
 
                 // Summing over all trees (quality trees)
+                cout << " error here" << endl;
                 prediction_train_sum_q = sum(tree_fits_store_q,1);
                 prediction_test_sum_q = sum(tree_fits_store_test_q,1);
 
 
                 // Need to update the Wishart matrix and alll its elements
-                updateP(prediction_test_sum_c,
+                cout << "Error on the wishart update" << endl;
+                // cout << "Prediction value C: " << prediction_train_sum_c(0) << endl;
+                // cout << "Prediction value Q: " << prediction_train_sum_q(0) << endl;
+
+                updateP(prediction_train_sum_c,
                         prediction_train_sum_q,
                         data);
 
-                // std::cout << " All good " << endl;
+                std::cout << " All good Q" << endl;
                 if(i >= n_burn){
                         // Storing the predictions
                         c_train_hat_post.col(curr) = prediction_train_sum_c;
@@ -1934,6 +1985,8 @@ Rcpp::List cppbart(arma::mat x_train,
                 all_tau_c(i) = data.tau_c;
                 all_tau_q(i) = data.tau_q;
                 all_rho(i) = data.rho;
+
+                cout << " Here???" << endl;
                 pb += 1;
 
         }
