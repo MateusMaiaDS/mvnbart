@@ -2,13 +2,7 @@
 #' @useDynLib mvnbart
 #' @importFrom Rcpp sourceCpp
 #'
-# A fucction to retrive the number which are the factor columns
-base_dummyVars <- function(df) {
-        num_cols <- sapply(df, is.numeric)
-        factor_cols <- sapply(df, is.factor)
 
-        return(list(continuousVars = names(df)[num_cols], facVars = names(df)[factor_cols]))
-}
 
 # Getting the BART wrapped function
 #' @export
@@ -96,16 +90,16 @@ mvnbart <- function(x_train,
         tau_mu <- tau_lambda <- (4*n_tree*(kappa^2))
 
      } else {
-        c_scale <- c
-        q_scale <- q
+        c_scale <- c_train
+        q_scale <- q_train
 
         tau_mu <- (4*n_tree*(kappa^2))/((max_c-min_c)^2)
         tau_lambda <- (4*n_tree*(kappa^2))/((max_q-min_q)^2)
      }
 
      # Getting the naive sigma value
-     nsigma_c <- naive_sigma(x = x_train,y = c_scale)
-     nsigma_q <- naive_sigma(x = x_train, y = q_scale)
+     nsigma_c <- naive_sigma(x = x_train_scale,y = c_scale)
+     nsigma_q <- naive_sigma(x = x_train_scale, y = q_scale)
 
      # Calculating tau hyperparam
      a_tau <- df/2
@@ -162,7 +156,7 @@ mvnbart <- function(x_train,
 
              all_tau_c_post <- bart_obj[[10]]/((max_c-min_c)^2)
              all_tau_q_post <- bart_obj[[11]]/((max_q-min_q)^2)
-             all_rho <- bart_obj[[12]]
+             all_rho <- bart_obj[[12]]/((max_c-min_c)*(max_q-min_q))
 
      } else {
              c_train_post <- bart_obj[[1]]
@@ -181,7 +175,18 @@ mvnbart <- function(x_train,
 
      }
 
-     # Return the list with all objects and parameters
+
+     # # Ploting some minor tests
+     # plot(rowMeans(q_train_post[,1001:1500]),q_train)
+     # plot(rowMeans(c_train_post[,1001:1500]),c_train)
+     #
+     # plot(all_rho, type = "l")
+     # plot(all_tau_c_post, type = "l")
+     # plot(all_tau_q_post, type = "l")
+     #
+     # mean(all_rho)
+
+      # Return the list with all objects and parameters
      return(list(c_hat = c_train_post,
                  q_hat = q_train_post,
                  c_hat_test = c_test_post,

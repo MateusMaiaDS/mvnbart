@@ -1,9 +1,12 @@
+# rm(list=ls())
 # source("R/BART_test_simulation.R")
+# source("R/other_functions.R")
+# Rcpp::sourceCpp("src/mvnbart.cpp")
 # x_train <- data |> dplyr::select(dplyr::starts_with("X")) #|> as.matrix()
 # x_test <- x_train
-# c <- data |> dplyr::select("C") |> as.matrix()
-# q <- data |> dplyr::select("Q") |> as.matrix()
-# n_tree = 20
+# c_train <- c <- data |> dplyr::select("C") |> as.matrix()
+# q_train <- q <- data |> dplyr::select("Q") |> as.matrix()
+# n_tree = 100
 # n_mcmc = 2000
 # n_burn = 500
 # alpha = 0.95
@@ -22,3 +25,5 @@
 # df_tau_b = 3
 # prob_tau_b = 0.9
 # stump <- FALSE
+# node_min_size <- 5
+#

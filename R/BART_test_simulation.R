@@ -14,11 +14,12 @@
 # }
 #
 # # true covariance matrix for residuals
-# Sigma <- matrix(c(1,1*1*0.5,1*1*0.5,1), nrow = 2)
+# Sigma <- matrix(c(1,1*1*0.8,1*1*0.8,1), nrow = 2)
+# # Sigma <- diag(nrow = 2)
 # Sigma_chol <- t(chol(Sigma))
 #
 # # sample size
-# N <- 50
+# N <- 300
 #
 # data <- data.frame(X1 = rep(NA, N))
 # data$X1 <- runif(N, -1, 1)
@@ -48,10 +49,12 @@
 # q <- data |> dplyr::pull("Q")
 # n_mcmc = 2000
 # n_burn = 500
+#
+# mvnBart_mod <- mvnbart::mvnbart(x_train = x_train,
+#                                 c_train = c,q_train = q,
+#                                 x_test = x_test,scale_bool = FALSE,n_tree = 200)
 # #
-# mvnbart_mod <- mvnbart(x_train = x_train,
-#                        c_train = c,
-#                        q_train = q,
-#                        n_tree = 5,
-#                        x_test = x_test)
-
+#
+# # Estimating the correlation
+# mvnBart_mod$rho_post %>% plot(type = "l")
+#
