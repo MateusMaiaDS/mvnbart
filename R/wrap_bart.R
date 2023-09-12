@@ -21,7 +21,7 @@ mvnbart <- function(x_train,
                   kappa = 2,
                   scale_bool = TRUE,
                   stump = FALSE,
-                  no_rotation_bool = FALSE
+                  fixed_P = NULL
                   ) {
 
 
@@ -122,6 +122,10 @@ mvnbart <- function(x_train,
 
      mu_init_c <- mean(c_scale)
      mu_init_q <- mean(q_scale)
+     
+     if(!is.null(fixed_P)){
+       init_P <- fixed_P
+     }
 
      # Generating the BART obj
      bart_obj <- cppbart(x_train_scale,
@@ -141,7 +145,7 @@ mvnbart <- function(x_train,
           tau_lambda,
           df_wish,
           s_0_wish)
-
+  
 
      if(scale_bool){
              # Tidying up the posterior elements

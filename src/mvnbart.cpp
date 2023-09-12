@@ -1818,7 +1818,7 @@ Rcpp::List cppbart(arma::mat x_train,
         arma::vec prediction_test_sum_c = arma::sum(tree_fits_store_test_c,1);
 
         arma::vec prediction_train_sum_q = arma::sum(tree_fits_store_q,1);
-        arma::vec prediction_test_sum_q = arma::sum(tree_fits_store_test_c,1);
+        arma::vec prediction_test_sum_q = arma::sum(tree_fits_store_test_q,1);
 
         for(int i = 0;i<data.n_mcmc;i++){
 
