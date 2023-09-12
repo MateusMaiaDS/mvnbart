@@ -1124,7 +1124,9 @@ void change_q(Node* tree, modelParam &data, arma::vec &curr_res_s,arma::vec &hat
         double old_left_ss_minus_sm = c_node->left->ss_minus_sm;
         double old_left_ss_minus_sm_sq = c_node->left->ss_minus_sm_sq;
         double old_left_s_s_minus_m_sq = c_node->left->s_s_minus_m_sq;
-
+        double old_left_gamma = c_node->left->gamma;
+        double old_left_eta = c_node->left->eta;
+        
 
         arma::vec old_left_train_index = c_node->left->train_index;
         c_node->left->train_index.fill(-1); // Returning to the original
@@ -1139,7 +1141,9 @@ void change_q(Node* tree, modelParam &data, arma::vec &curr_res_s,arma::vec &hat
         double old_right_ss_minus_sm = c_node->right->ss_minus_sm;
         double old_right_ss_minus_sm_sq = c_node->right->ss_minus_sm_sq;
         double old_right_s_s_minus_m_sq = c_node->right->s_s_minus_m_sq;
-
+        double old_right_gamma = c_node->right->gamma;
+        double old_right_eta = c_node->right->eta;
+        
         arma::vec old_right_train_index = c_node->right->train_index;
         c_node->right->train_index.fill(-1);
         int old_right_n_leaf = c_node->right->n_leaf;
@@ -1241,7 +1245,8 @@ void change_q(Node* tree, modelParam &data, arma::vec &curr_res_s,arma::vec &hat
                 c_node->left->ss_minus_sm = old_left_ss_minus_sm;
                 c_node->left->ss_minus_sm_sq = old_left_ss_minus_sm_sq;
                 c_node->left->s_s_minus_m_sq = old_left_s_s_minus_m_sq;
-
+                c_node->left->gamma = old_left_gamma;
+                c_node->left->eta = old_left_eta;
 
                 c_node->left->n_leaf = old_left_n_leaf;
                 c_node->left->n_leaf_test = old_left_n_leaf_test;
@@ -1256,7 +1261,8 @@ void change_q(Node* tree, modelParam &data, arma::vec &curr_res_s,arma::vec &hat
                 c_node->right->ss_minus_sm = old_right_ss_minus_sm;
                 c_node->right->ss_minus_sm_sq = old_right_ss_minus_sm_sq;
                 c_node->right->s_s_minus_m_sq = old_right_s_s_minus_m_sq;
-
+                c_node->right->gamma = old_right_gamma;
+                c_node->right->eta = old_right_eta;
 
                 c_node->right->n_leaf = old_right_n_leaf;
                 c_node->right->n_leaf_test = old_right_n_leaf_test;
@@ -1296,14 +1302,15 @@ void change_q(Node* tree, modelParam &data, arma::vec &curr_res_s,arma::vec &hat
                 c_node->left->ss_minus_sm = old_left_ss_minus_sm;
                 c_node->left->ss_minus_sm_sq = old_left_ss_minus_sm_sq;
                 c_node->left->s_s_minus_m_sq = old_left_s_s_minus_m_sq;
-
+                c_node->left->gamma = old_left_gamma;
+                c_node->left->eta = old_left_eta;
 
                 c_node->left->n_leaf = old_left_n_leaf;
                 c_node->left->n_leaf_test = old_left_n_leaf_test;
                 c_node->left->log_likelihood = old_left_log_like;
                 c_node->left->train_index = old_left_train_index;
                 c_node->left->test_index = old_left_test_index;
-
+                
                 // Returning to the old ones
                 c_node->right->sr_minus_sl = old_right_sr_minus_sl;
                 c_node->right->sr_minus_sl_sq = old_right_sr_minus_sl_sq;
@@ -1311,7 +1318,9 @@ void change_q(Node* tree, modelParam &data, arma::vec &curr_res_s,arma::vec &hat
                 c_node->right->ss_minus_sm = old_right_ss_minus_sm;
                 c_node->right->ss_minus_sm_sq = old_right_ss_minus_sm_sq;
                 c_node->right->s_s_minus_m_sq = old_right_s_s_minus_m_sq;
-
+                c_node->right->gamma = old_right_gamma;
+                c_node->right->eta = old_right_eta;
+                
 
                 c_node->right->n_leaf = old_right_n_leaf;
                 c_node->right->n_leaf_test = old_right_n_leaf_test;
@@ -1520,7 +1529,7 @@ void Node::nodeUpdateResiduals_q(modelParam& data,
                 s_s_minus_m_sq = s_s_minus_m_sq + (leaf_s(i)-leaf_m(i))*(leaf_s(i)-leaf_m(i));
         }
 
-        ss_minus_sm = arma::accu(leaf_s)-arma::accu(leaf_m);
+        ss_minus_sm = arma::sum(leaf_s)-arma::sum(leaf_m);
         ss_minus_sm_sq = ss_minus_sm*ss_minus_sm;
 
         // Updating the eta
@@ -1532,7 +1541,7 @@ void Node::nodeUpdateResiduals_q(modelParam& data,
 
 // Calculating the Loglilelihood of a node
 void Node::nodeLogLike_q(modelParam& data,
-                         arma::vec &curr_res_r,
+                         arma::vec &curr_res_s,
                          arma::vec &hat_q){
 
         // Getting number of leaves in case of a root
