@@ -160,7 +160,7 @@ mvnbart <- function(x_train,
 
              all_tau_c_post <- bart_obj[[10]]/((max_c-min_c)^2)
              all_tau_q_post <- bart_obj[[11]]/((max_q-min_q)^2)
-             all_rho <- bart_obj[[12]]/((max_c-min_c)*(max_q-min_q))
+             all_rho <- bart_obj[[12]]
 
      } else {
              c_train_post <- bart_obj[[1]]
